@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador EXANI-II • 48 Preguntas • Derecho + Historia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .question-card { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .option-btn { transition: all 0.2s; }
+    .option-btn:hover { transform: translateX(8px); }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+  <div class="max-w-4xl mx-auto px-6">
+    <!-- Pantalla inicial -->
+    <div id="start-screen">
+      <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold text-indigo-700 mb-3">Simulador EXANI-II</h1>
+        <p class="text-2xl text-gray-700">Derecho • Historia de México • Historia Universal</p>
+        <p class="text-lg text-gray-500 mt-2">48 preguntas con retroalimentación inmediata + cronómetro</p>
+      </div>
+
+      <div class="max-w-lg mx-auto bg-white rounded-3xl shadow-2xl p-10">
+        <h2 class="text-2xl font-semibold mb-8 text-center">Ingresa tus datos</h2>
+        <input id="nombre" type="text" placeholder="Nombre completo" 
+               class="w-full px-6 py-5 rounded-2xl border border-gray-300 focus:border-indigo-500 mb-5 text-lg">
+        <input id="correo" type="email" placeholder="tu.correo@ejemplo.com" 
+               class="w-full px-6 py-5 rounded-2xl border border-gray-300 focus:border-indigo-500 mb-8 text-lg">
+        <button onclick="iniciarSimulador()" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 rounded-3xl text-2xl transition-all">
+          ¡INICIAR SIMULADOR!
+        </button>
+        <p class="text-center text-xs text-gray-400 mt-6">Los resultados se enviarán a Google Sheets</p>
+      </div>
+    </div>
+
+    <!-- Pantalla del examen -->
+    <div id="quiz-screen" class="hidden">
+      <div class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-4">
+          <span id="progress" class="text-2xl font-bold text-indigo-600">1 / 48</span>
+          <div class="h-4 w-80 bg-gray-200 rounded-full">
+            <div id="progress-bar" class="h-4 bg-indigo-600 rounded-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-xl font-mono font-bold text-gray-700">
+          <i class="fas fa-clock"></i> <span id="timer">00:00</span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-2xl p-10 question-card">
+        <p id="category" class="uppercase tracking-widest text-indigo-600 font-semibold text-sm mb-3"></p>
+        <h2 id="question-text" class="text-2xl leading-relaxed mb-10"></h2>
+        
+        <div id="options" class="grid gap-4"></div>
+
+        <div class="mt-12 flex justify-end gap-4">
+          <button onclick="confirmarRespuesta()" id="confirm-btn"
+                  class="hidden px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-2xl text-lg">
+            Confirmar respuesta
+          </button>
+          <button onclick="siguientePregunta()" id="next-btn"
+                  class="hidden px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl text-lg">
+            Siguiente →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantalla de resultados -->
+    <div id="results-screen" class="hidden text-center py-16">
+      <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-12">
+        <h2 class="text-4xl font-bold text-emerald-600 mb-6">¡Simulador terminado!</h2>
+        <p id="score" class="text-8xl font-black text-emerald-600 mb-2">0/48</p>
+        <p id="percentage" class="text-3xl text-gray-600 mb-6"></p>
+        <p id="time-result" class="text-xl text-gray-500"></p>
+      </div>
+      <button onclick="enviarResultados()" 
+              class="mt-10 px-16 py-6 bg-emerald-600 hover:bg-emerald-700 text-white text-2xl font-bold rounded-3xl shadow-xl transition-all">
+        Enviar resultados a Google Sheets
+      </button>
+      <p id="status-msg" class="mt-8 text-sm text-gray-500"></p>
+    </div>
+  </div>
+
+  <script>
+    // ==================== CONFIGURACIÓN ====================
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/TU_URL_AQUI/exec"; // ← REEMPLAZA ESTA URL
+
+    const preguntas = [
+      // ==================== DERECHO (16 preguntas) ====================
+      {id:1, cat:"Derecho - Nociones", q:"¿Cuál es una de las acepciones principales de la palabra 'derecho' según el temario oficial?", o:["A) Solo normas escritas","B) Conjunto de normas jurídicas vigentes","C) Únicamente sanciones","D) Solo derecho natural"], r:"B", exp:"Acepciones del derecho: vigente, no vigente, positivo, objetivo y subjetivo (Nociones de Derecho)."},
+      {id:2, cat:"Derecho - Nociones", q:"Las normas jurídicas se distinguen de las normas morales principalmente porque:", o:["A) Son coercibles","B) Son voluntarias","C) No tienen sanción","D) Solo aplican a creyentes"], r:"A", exp:"Características de las normas jurídicas: coercibilidad y heteronomía."},
+      {id:3, cat:"Derecho - Nociones", q:"¿Qué tipo de fuente del derecho se refiere a la costumbre?", o:["A) Fuente formal","B) Fuente real","C) Fuente histórica","D) Fuente doctrinal"], r:"B", exp:"Fuentes del derecho: formales, reales e históricas."},
+      {id:4, cat:"Derecho - Ramas", q:"¿Cuál rama del derecho regula las relaciones entre particulares y el Estado en materia de garantías individuales?", o:["A) Derecho civil","B) Derecho constitucional","C) Derecho penal","D) Derecho mercantil"], r:"B", exp:"Derecho constitucional: garantías, formas de gobierno y división de poderes."},
+      {id:5, cat:"Derecho - Ramas", q:"El Código Civil regula principalmente:", o:["A) Delitos y penas","B) Relaciones familiares y patrimoniales entre particulares","C) Contratos mercantiles","D) Procedimientos administrativos"], r:"B", exp:"Derecho civil y derecho familiar."},
+      {id:6, cat:"Derecho - Ramas", q:"¿Qué principio penal establece que no hay delito ni pena sin ley previa?", o:["A) Presunción de inocencia","B) Legalidad o nullum crimen sine lege","C) Proporcionalidad","D) Territorialidad"], r:"B", exp:"Principios penales fundamentales."},
+      {id:7, cat:"Derecho - Ramas", q:"El amparo es un medio de defensa típico del:", o:["A) Derecho laboral","B) Derecho constitucional mexicano","C) Derecho internacional","D) Derecho mercantil"], r:"B", exp:"Medios de defensa en derecho constitucional."},
+      {id:8, cat:"Derecho - Ramas", q:"¿Qué rama del derecho estudia las sociedades mercantiles y los títulos de crédito?", o:["A) Derecho civil","B) Derecho mercantil","C) Derecho penal","D) Derecho administrativo"], r:"B", exp:"Ramas del derecho – Derecho mercantil."},
+      {id:9, cat:"Derecho - Ramas", q:"El derecho laboral regula principalmente:", o:["A) Relaciones entre patrón y trabajador","B) Contratos de compraventa","C) Delitos contra la propiedad","D) Sucesiones"], r:"A", exp:"Derecho laboral."},
+      {id:10, cat:"Derecho - Ramas", q:"¿Cuál es el objeto principal del derecho administrativo?", o:["A) Relaciones entre particulares","B) La organización y funcionamiento de la Administración Pública","C) Delitos y penas","D) Comercio internacional"], r:"B", exp:"Derecho administrativo."},
+      {id:11, cat:"Derecho", q:"Las garantías individuales están protegidas principalmente en:", o:["A) El Código Penal","B) La Constitución Política","C) El Código de Comercio","D) La Ley Federal del Trabajo"], r:"B", exp:"Derecho constitucional – garantías."},
+      {id:12, cat:"Derecho", q:"El principio de división de poderes corresponde al:", o:["A) Montesquieu","B) Rousseau","C) Hobbes","D) Locke"], r:"A", exp:"Formas de gobierno y división de poderes."},
+      {id:13, cat:"Derecho", q:"¿Qué tipo de norma es la Constitución?", o:["A) Norma moral","B) Norma jurídica fundamental","C) Norma religiosa","D) Norma social"], r:"B", exp:"Jerarquía de las normas."},
+      {id:14, cat:"Derecho", q:"El derecho subjetivo se define como:", o:["A) La facultad de exigir una conducta","B) El conjunto de normas","C) Solo las leyes","D) Las sanciones"], r:"A", exp:"Derecho objetivo y subjetivo."},
+      {id:15, cat:"Derecho", q:"¿Cuál es una fuente formal del derecho?", o:["A) La doctrina","B) La ley","C) La costumbre como única fuente","D) La jurisprudencia sola"], r:"B", exp:"Fuentes formales del derecho."},
+      {id:16, cat:"Derecho", q:"El derecho penal se caracteriza por ser:", o:["A) Dispositivo","B) Público y sancionador","C) Privado","D) Voluntario"], r:"B", exp:"Características del derecho penal."},
+
+      // ==================== HISTORIA DE MÉXICO (16 preguntas) ====================
+      {id:17, cat:"Historia de México", q:"¿Cuál es una característica principal del México prehispánico?", o:["A) Sistema de haciendas","B) Horizonte histórico de áreas culturales (olmeca, maya, azteca, etc.)","C) Virreinato español","D) Porfiriato"], r:"B", exp:"Características de los grupos humanos y horizonte histórico de áreas culturales del México Prehispánico."},
+      {id:18, cat:"Historia de México", q:"Las rutas migratorias del poblamiento de América se asocian principalmente con:", o:["A) El estrecho de Bering","B) La llegada de Colón","C) La conquista española","D) La Independencia"], r:"A", exp:"Características de los grupos humanos y rutas migratorias del poblamiento del continente americano."},
+      {id:19, cat:"Historia de México", q:"Una institución característica del Virreinato de Nueva España fue:", o:["A) La encomienda y el repartimiento","B) El ejido","C) El sufragio universal","D) La maquiladora"], r:"A", exp:"Características de las instituciones políticas, sociales, económicas o culturales novohispanas."},
+      {id:20, cat:"Historia de México", q:"¿Cuál fue una causa principal del movimiento de Independencia de 1810?", o:["A) Influencia de la Ilustración y crisis de la monarquía española","B) La Revolución Industrial","C) La Guerra Fría","D) El Tratado de Guadalupe Hidalgo"], r:"A", exp:"Causas y consecuencias del proceso de independencia."},
+      {id:21, cat:"Historia de México", q:"El Plan de Iguala y los Tratados de Córdoba son parte del:", o:["A) Periodo de la Reforma","B) Consumación de la Independencia","C) Porfiriato","D) Revolución Mexicana"], r:"B", exp:"Desarrollo del movimiento de Independencia 1810-1821."},
+      {id:22, cat:"Historia de México", q:"Las Leyes de Reforma impulsadas por Benito Juárez buscaban:", o:["A) Separación Iglesia-Estado y desamortización","B) Establecer la monarquía","C) Nacionalizar la industria petrolera","D) Crear el PRI"], r:"A", exp:"Planteamientos de los proyectos de organización política durante el siglo XIX y aportaciones de las legislaciones del siglo XIX."},
+      {id:23, cat:"Historia de México", q:"La intervención francesa y el Segundo Imperio son ejemplos de:", o:["A) Consecuencias de las intervenciones extranjeras en el siglo XIX","B) La Independencia","C) El Porfiriato","D) La Revolución de 1910"], r:"A", exp:"Consecuencias de las intervenciones extranjeras durante el siglo XIX."},
+      {id:24, cat:"Historia de México", q:"El Porfiriato se caracterizó por:", o:["A) Modernización económica, ferrocarriles y paz porfiriana","B) Guerra de castas","C) Nacionalización del petróleo","D) Movimiento estudiantil de 1968"], r:"A", exp:"Sucesos políticos, económicos, sociales y culturales del Porfiriato."},
+      {id:25, cat:"Historia de México", q:"Una causa principal de la Revolución Mexicana de 1910 fue:", o:["A) La reelección indefinida de Porfirio Díaz y la falta de democracia","B) La independencia de Texas","C) La Guerra de los Pasteles","D) El Tratado de Versalles"], r:"A", exp:"Causas y consecuencias de la Revolución Mexicana."},
+      {id:26, cat:"Historia de México", q:"El artículo 27 constitucional (agrario) y el artículo 123 (laboral) son resultado de:", o:["A) La Constitución de 1917","B) Las Leyes de Reforma","C) La Constitución de 1857","D) El Plan de Ayutla"], r:"A", exp:"Características y acciones de los gobiernos postrevolucionarios (1920-1940)."},
+      {id:27, cat:"Historia de México", q:"El cardenismo (gobierno de Lázaro Cárdenas) incluyó:", o:["A) Expropiación petrolera y reparto agrario masivo","B) Privatización de empresas","C) Entrada a la OCDE","D) Firma del TLCAN"], r:"A", exp:"Reconstrucción económica, política, agraria, laboral y educativa."},
+      {id:28, cat:"Historia de México", q:"El desarrollo estabilizador (1940-1970) se caracterizó por:", o:["A) Crecimiento económico sostenido con bajo inflación","B) Crisis económica de 1994","C) Movimiento armado zapatista","D) Transición democrática"], r:"A", exp:"Características del desarrollo económico de 1940 a 1982."},
+      {id:29, cat:"Historia de México", q:"El movimiento estudiantil de 1968 y la matanza de Tlatelolco son parte de:", o:["A) Causas y consecuencias de los movimientos sociales de 1968 al 2000","B) La Independencia","C) El Porfiriato","D) La Reforma"], r:"A", exp:"Causas y consecuencias de los movimientos sociales ocurridos de 1968 al 2000."},
+      {id:30, cat:"Historia de México", q:"La alternancia política en el año 2000 con Vicente Fox marca:", o:["A) El inicio de la transición democrática","B) El fin de la Revolución","C) La expropiación petrolera","D) El Tratado de Guadalupe Hidalgo"], r:"A", exp:"Causas y consecuencias de los hechos relacionados con la transición democrática de 1980 a la actualidad."},
+      {id:31, cat:"Historia de México", q:"La crisis económica de 1982 y la adopción del modelo neoliberal se relacionan con:", o:["A) El populismo al neoliberalismo global","B) El cardenismo","C) La Independencia","D) El Virreinato"], r:"A", exp:"Crisis del sistema político mexicano y transición democrática."},
+      {id:32, cat:"Historia de México", q:"El Tratado de Libre Comercio de América del Norte (TLCAN) se firmó durante el gobierno de:", o:["A) Carlos Salinas de Gortari","B) Lázaro Cárdenas","C) Porfirio Díaz","D) Benito Juárez"], r:"A", exp:"México contemporáneo y globalización."},
+
+      // ==================== HISTORIA UNIVERSAL (16 preguntas) ====================
+      {id:33, cat:"Historia Universal", q:"El imperialismo de finales del siglo XIX se caracterizó por:", o:["A) Expansión colonial y capitalismo monopólico","B) Descolonización de África","C) Caída del muro de Berlín","D) Revolución Digital"], r:"A", exp:"Imperialismo y proceso de expansión colonial (1870-1914). Ejes de la política económica imperialista."},
+      {id:34, cat:"Historia Universal", q:"Una consecuencia de la política militar del dominio colonial fue:", o:["A) Reparto de África y Asia entre potencias europeas","B) Independencia de las 13 colonias","C) Revolución Francesa","D) Guerra de Secesión"], r:"A", exp:"Consecuencias de la política militar del dominio colonial (1870-1914)."},
+      {id:35, cat:"Historia Universal", q:"¿Cuál fue una causa principal de la Primera Guerra Mundial?", o:["A) Nacionalismo, imperialismo y sistema de alianzas","B) La caída del muro de Berlín","C) La crisis de los misiles en Cuba","D) La globalización"], r:"A", exp:"Causas y consecuencias de la Primera Guerra Mundial."},
+      {id:36, cat:"Historia Universal", q:"La Revolución Rusa de 1917 ocurrió durante:", o:["A) La Primera Guerra Mundial","B) La Segunda Guerra Mundial","C) La Guerra Fría","D) El imperialismo"], r:"A", exp:"Primera Guerra Mundial y Revolución Rusa."},
+      {id:37, cat:"Historia Universal", q:"El Tratado de Versalles impuso duras condiciones a:", o:["A) Alemania","B) Francia","C) Estados Unidos","D) Japón"], r:"A", exp:"Consecuencias de la Primera Guerra Mundial."},
+      {id:38, cat:"Historia Universal", q:"Una causa de la Segunda Guerra Mundial fue:", o:["A) Expansionismo nazi, fascista y japonés","B) La firma del TLCAN","C) La Independencia de México","D) La Reforma protestante"], r:"A", exp:"Causas y consecuencias de la Segunda Guerra Mundial."},
+      {id:39, cat:"Historia Universal", q:"El Holocausto y el uso de bombas atómicas en Hiroshima y Nagasaki ocurrieron en:", o:["A) La Segunda Guerra Mundial","B) La Primera Guerra Mundial","C) La Guerra Fría","D) El imperialismo"], r:"A", exp:"Segunda Guerra Mundial."},
+      {id:40, cat:"Historia Universal", q:"La Guerra Fría se caracterizó por la confrontación entre:", o:["A) Estados Unidos (capitalismo) y la URSS (socialismo)","B) Francia y Alemania","C) España y Portugal","D) China y Japón"], r:"A", exp:"Causas y consecuencias de la Guerra Fría (1945-1991)."},
+      {id:41, cat:"Historia Universal", q:"El Plan Marshall fue una estrategia de:", o:["A) Estados Unidos para reconstruir Europa Occidental","B) La URSS para expandir el comunismo","C) Japón para industrializarse","D) México para la Reforma"], r:"A", exp:"Características de la Guerra Fría."},
+      {id:42, cat:"Historia Universal", q:"El proceso de descolonización después de 1945 afectó principalmente a:", o:["A) África y Asia","B) Europa Occidental","C) América Latina en el siglo XIX","D) Australia"], r:"A", exp:"Características del proceso de descolonización."},
+      {id:43, cat:"Historia Universal", q:"La caída del Muro de Berlín en 1989 simbolizó:", o:["A) El fin de la Guerra Fría y el colapso del bloque soviético","B) El inicio de la Primera Guerra Mundial","C) La Revolución Industrial","D) La conquista de América"], r:"A", exp:"Caída del sistema soviético."},
+      {id:44, cat:"Historia Universal", q:"La globalización a partir de la segunda mitad del siglo XX se asocia con:", o:["A) Interconexión económica, tecnológica y cultural mundial","B) Aislamiento de los países","C) Feudalismo","D) Absolutismo monárquico"], r:"A", exp:"Características de la globalización a partir de la segunda mitad del siglo XX."},
+      {id:45, cat:"Historia Universal", q:"El neoliberalismo promueve principalmente:", o:["A) Libre mercado, privatizaciones y reducción del Estado","B) Economía planificada centralizada","C) Monarquía absoluta","D) Feudalismo"], r:"A", exp:"Consecuencias del neoliberalismo."},
+      {id:46, cat:"Historia Universal", q:"Las revoluciones burguesas del siglo XVIII y XIX buscaban:", o:["A) Eliminar el absolutismo y establecer derechos del hombre","B) Restaurar la monarquía","C) Expandir el imperio otomano","D) Crear la Unión Soviética"], r:"A", exp:"Transición a la sociedad capitalista y las revoluciones burguesas."},
+      {id:47, cat:"Historia Universal", q:"La crisis del capitalismo de 1929 se conoce como:", o:["A) Gran Depresión","B) Revolución Industrial","C) Ilustración","D) Renacimiento"], r:"A", exp:"Crisis del capitalismo antes de la Segunda Guerra Mundial."},
+      {id:48, cat:"Historia Universal", q:"La Organización de las Naciones Unidas (ONU) se creó después de:", o:["A) La Segunda Guerra Mundial","B) La Primera Guerra Mundial","C) La Revolución Francesa","D) La Independencia de EE.UU."], r:"A", exp:"Consecuencias de la Segunda Guerra Mundial y creación de organismos internacionales."}
+    ];
+
+    let preguntaActual = 0;
+    let respuestasUsuario = [];
+    let tiempoInicio = 0;
+    let timerInterval;
+    let nombreUsuario = "";
+    let correoUsuario = "";
+
+    function iniciarSimulador() {
+      nombreUsuario = document.getElementById("nombre").value.trim() || "Anónimo";
+      correoUsuario = document.getElementById("correo").value.trim() || "sin-correo@example.com";
+      
+      if (nombreUsuario.length < 3) {
+        alert("Por favor ingresa tu nombre completo");
+        return;
+      }
+      
+      document.getElementById("start-screen").classList.add("hidden");
+      document.getElementById("quiz-screen").classList.remove("hidden");
+      
+      tiempoInicio = Date.now();
+      timerInterval = setInterval(actualizarTimer, 1000);
+      mostrarPregunta();
+    }
+
+    function actualizarTimer() {
+      const transcurrido = Math.floor((Date.now() - tiempoInicio) / 1000);
+      const minutos = Math.floor(transcurrido / 60);
+      const segundos = transcurrido % 60;
+      document.getElementById("timer").textContent = 
+        `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    }
+
+    function mostrarPregunta() {
+      const p = preguntas[preguntaActual];
+      document.getElementById("progress").textContent = `${preguntaActual + 1} / 48`;
+      document.getElementById("progress-bar").style.width = `${((preguntaActual + 1) / 48) * 100}%`;
+      document.getElementById("category").textContent = p.cat;
+      document.getElementById("question-text").innerHTML = `<strong>${preguntaActual + 1}.</strong> ${p.q}`;
+      
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = "";
+      
+      p.o.forEach((op, i) => {
+        const letra = String.fromCharCode(65 + i);
+        optionsDiv.innerHTML += `
+          <button onclick="seleccionarRespuesta('${letra}', this)" 
+                  class="option-btn w-full text-left px-6 py-5 rounded-2xl border-2 border-gray-300 hover:border-indigo-400 text-lg flex items-start gap-4">
+            <span class="font-bold text-indigo-600 mt-0.5">${letra}</span> 
+            <span>${op}</span>
+          </button>`;
+      });
+      
+      document.getElementById("confirm-btn").classList.add("hidden");
+      document.getElementById("next-btn").classList.add("hidden");
+    }
+
+    let respuestaSeleccionada = null;
+    let botonSeleccionado = null;
+
+    function seleccionarRespuesta(letra, boton) {
+      respuestaSeleccionada = letra;
+      if (botonSeleccionado) botonSeleccionado.classList.remove("border-indigo-600", "bg-indigo-50");
+      boton.classList.add("border-indigo-600", "bg-indigo-50");
+      botonSeleccionado = boton;
+      document.getElementById("confirm-btn").classList.remove("hidden");
+    }
+
+    function confirmarRespuesta() {
+      if (!respuestaSeleccionada) return;
+      
+      const p = preguntas[preguntaActual];
+      const esCorrecta = respuestaSeleccionada === p.r;
+      
+      respuestasUsuario.push({
+        num: preguntaActual + 1,
+        categoria: p.cat,
+        pregunta: p.q,
+        respuestaUsuario: respuestaSeleccionada,
+        correcta: p.r,
+        esCorrecta: esCorrecta,
+        explicacion: p.exp
+      });
+      
+      // Mostrar retroalimentación
+      const botones = document.querySelectorAll("#options button");
+      botones.forEach(btn => {
+        const letra = btn.textContent.trim()[0];
+        if (letra === p.r) {
+          btn.classList.add("border-emerald-500", "bg-emerald-50");
+        }
+        if (letra === respuestaSeleccionada && !esCorrecta) {
+          btn.classList.add("border-red-500", "bg-red-50");
+        }
+      });
+      
+      document.getElementById("confirm-btn").classList.add("hidden");
+      document.getElementById("next-btn").classList.remove("hidden");
+    }
+
+    function siguientePregunta() {
+      preguntaActual++;
+      if (preguntaActual < preguntas.length) {
+        respuestaSeleccionada = null;
+        botonSeleccionado = null;
+        mostrarPregunta();
+      } else {
+        terminarSimulador();
+      }
+    }
+
+    function terminarSimulador() {
+      clearInterval(timerInterval);
+      const tiempoTotalSeg = Math.floor((Date.now() - tiempoInicio) / 1000);
+      const minutos = Math.floor(tiempoTotalSeg / 60);
+      
+      const correctas = respuestasUsuario.filter(r => r.esCorrecta).length;
+      
+      document.getElementById("quiz-screen").classList.add("hidden");
+      document.getElementById("results-screen").classList.remove("hidden");
+      
+      document.getElementById("score").textContent = `${correctas}/48`;
+      document.getElementById("percentage").innerHTML = `${Math.round((correctas/48)*100)}% de aciertos`;
+      document.getElementById("time-result").textContent = `Tiempo total: ${minutos} minutos`;
+      
+      window.datosFinales = {
+        nombre: nombreUsuario,
+        correo: correoUsuario,
+        puntaje: correctas,
+        porcentaje: Math.round((correctas/48)*100),
+        tiempo: minutos,
+        fecha: new Date().toLocaleString('es-MX')
+      };
+    }
+
+    function enviarResultados() {
+      const msg = document.getElementById("status-msg");
+      msg.textContent = "Enviando resultados...";
+      
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(window.datosFinales)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === "success") {
+          msg.innerHTML = `<span class="text-emerald-600 font-semibold">✅ Resultados enviados correctamente a tu Google Sheets</span>`;
+          setTimeout(() => location.reload(), 2500);
+        } else {
+          msg.textContent = "Error al enviar. Intenta de nuevo.";
+        }
+      })
+      .catch(() => {
+        msg.textContent = "❌ Error de conexión. Verifica tu Google Apps Script.";
+      });
+    }
+
+    // Permitir Enter para confirmar en algunos casos (opcional)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !document.getElementById("next-btn").classList.contains("hidden")) {
+        siguientePregunta();
+      }
+    });
+  </script>
+</body>
+</html>
